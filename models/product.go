@@ -1,8 +1,6 @@
 package models
 
-import (
-	"example/buddyseller-api/db"
-)
+import "example/buddyseller-api/database"
 
 type Product struct {
 	ID          int64
@@ -18,7 +16,7 @@ func (product *Product) Save() error {
 	INSERT INTO products(name, description, sku, price, stock)
 	VALUES ($1, $2, $3, $4, $5) RETURNING id
 	`
-	stmt, err := db.DB.Prepare(query)
+	stmt, err := database.DB.Prepare(query)
 
 	if err != nil {
 		return err
@@ -40,7 +38,7 @@ func (product *Product) Save() error {
 
 func GetAllProducts() ([]Product, error) {
 	query := "SELECT * FROM products"
-	rows, err := db.DB.Query(query)
+	rows, err := database.DB.Query(query)
 
 	if err != nil {
 		return nil, err
@@ -65,7 +63,7 @@ func GetAllProducts() ([]Product, error) {
 
 func GetProductById(id int64) (*Product, error) {
 	query := "SELECT * FROM products WHERE id = $1"
-	row := db.DB.QueryRow(query, id)
+	row := database.DB.QueryRow(query, id)
 
 	var product Product
 	err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Sku, &product.Price, &product.Stock)
@@ -79,7 +77,7 @@ func GetProductById(id int64) (*Product, error) {
 
 func GetProductBySku(sku string) (*Product, error) {
 	query := "SELECT * FROM products WHERE sku = $1"
-	row := db.DB.QueryRow(query, sku)
+	row := database.DB.QueryRow(query, sku)
 
 	var product Product
 	err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Sku, &product.Price, &product.Stock)
@@ -103,7 +101,7 @@ func (product *Product) Update() error {
 	WHERE id = $1
 	`
 
-	stmt, err := db.DB.Prepare(query)
+	stmt, err := database.DB.Prepare(query)
 
 	if err != nil {
 		return err
@@ -125,7 +123,7 @@ func DeleteProduct(id int64) error {
 	WHERE id = $1
 	`
 
-	_, err := db.DB.Exec(query, id)
+	_, err := database.DB.Exec(query, id)
 
 	if err != nil {
 		return err

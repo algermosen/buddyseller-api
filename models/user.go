@@ -1,7 +1,7 @@
 package models
 
 import (
-	"example/buddyseller-api/db"
+	"example/buddyseller-api/database"
 )
 
 type User struct {
@@ -18,7 +18,7 @@ func (user *User) Save() error {
 	VALUES ($1, $2, $3, $4) RETURNING id
 	`
 
-	stmt, err := db.DB.Prepare(query)
+	stmt, err := database.DB.Prepare(query)
 
 	if err != nil {
 		return err

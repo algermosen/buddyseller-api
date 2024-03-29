@@ -1,7 +1,7 @@
 package main
 
 import (
-	"example/buddyseller-api/db"
+	"example/buddyseller-api/database"
 	"example/buddyseller-api/routes"
 	"flag"
 
@@ -10,11 +10,7 @@ import (
 )
 
 func main() {
-
-	gin.SetMode(gin.DebugMode)
-	godotenv.Load(".env.dev")
-
-	db.InitDB()
+	database.InitDB()
 	server := gin.Default()
 	routes.RegisterRoutes(server)
 	server.Run(":9000")
