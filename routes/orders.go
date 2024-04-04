@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"example/buddyseller-api/dtos"
 	"example/buddyseller-api/models"
 	"net/http"
 	"strconv"
@@ -8,49 +9,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getProducts(ctx *gin.Context) {
-	products, err := models.GetAllProducts()
+func getOrders(ctx *gin.Context) {
+	orders, err := models.GetAllOrders()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch products. Try again later", "error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch orders. Try again later", "error": err.Error()})
 	}
 
-	ctx.JSON(http.StatusOK, products)
+	ctx.JSON(http.StatusOK, orders)
 }
 
-func getProductById(ctx *gin.Context) {
+func getOrderById(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Not recognized as a valid Id"})
 		return
 	}
 
-	product, err := models.GetProductById(id)
+	order, err := models.GetOrderById(id)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, product)
+	ctx.JSON(http.StatusOK, order)
 }
 
-func getProductBySku(ctx *gin.Context) {
-	sku := ctx.Param("sku")
+func placeOrder(ctx *gin.Context) {
 
-	product, err := models.GetBySku(sku)
-
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, product)
-}
-
-func createProduct(ctx *gin.Context) {
-
-	var product models.Product
-	err := ctx.ShouldBindJSON(&product)
+	var order dtos.NewOrderDto
+	err := ctx.ShouldBindJSON(&order)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -60,7 +48,7 @@ func createProduct(ctx *gin.Context) {
 		return
 	}
 
-	err = product.Save()
+	err = models.PlaceOrder(order)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -74,11 +62,11 @@ func createProduct(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "GOOD JOB!",
-		"data":    product,
+		"data":    order,
 	})
 }
 
-func updateProduct(ctx *gin.Context) {
+func updateStatus(ctx *gin.Context) {
 	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 
 	if err != nil {
@@ -105,15 +93,15 @@ func updateProduct(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updatedProduct)
 }
 
-func deleteProduct(ctx *gin.Context) {
-	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+func cancelOrder(ctx *gin.Context) {
+	orderId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
-	err = models.DeleteProduct(productId)
+	err = models.CancelOrder(orderId)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})

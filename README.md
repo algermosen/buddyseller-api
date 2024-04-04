@@ -30,8 +30,26 @@ brew install golang-migrate
 - **Execute create migration**
 
 ```sh
-export X*DB*URL="postgresql://%s:%s@%s:%s/%s?sslmode=disable"
+make create_migration MIGRATIONNAME=write_migration_name
 ```
 
-- Execute migration up
-- Execute migration rollback
+- **Write the changes you want to make in the files generated in `database/migrations/`**
+
+- **Execute migration up**
+
+```sh
+make migration_up
+```
+
+- **Execute migration rollback**
+
+```sh
+make migration_down
+```
+
+- **Optionally, you can override the environment used for the migrations using ENV**
+- 
+```sh
+make migration_up ENV=.env.dev
+make migration_down ENV=.env.test
+```

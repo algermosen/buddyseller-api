@@ -2,7 +2,7 @@ ENV=.env
 include $(ENV)
 
 MIGRATIONS_PATH=database/migrations/
-DB_PATH=postgresql://$(PG_DB_USER):$(PG_DB_PASS)@$(PG_DB_HOST):$(PG_DB_PORT)/$(PG_DB_NAME)?sslmode=disable
+DB_PATH=postgresql://$(PG_USER):$(PG_PASS)@$(PG_HOST):$(PG_PORT)/$(PG_NAME)?sslmode=disable
 
 create_migration:
 	migrate create -ext sql -dir $(MIGRATIONS_PATH) $(MIGRATION_NAME)

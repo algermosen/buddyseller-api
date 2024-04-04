@@ -1,6 +1,9 @@
 package models
 
-import "example/buddyseller-api/database"
+import (
+	"example/buddyseller-api/database"
+	"fmt"
+)
 
 type Product struct {
 	ID          int64
@@ -16,23 +19,17 @@ func (product *Product) Save() error {
 	INSERT INTO products(name, description, sku, price, stock)
 	VALUES ($1, $2, $3, $4, $5) RETURNING id
 	`
-	stmt, err := database.DB.Prepare(query)
+	fmt.Printf("%+v\n", product)
+	var pk int64
+
+	err := database.DB.QueryRow(query, &product.Name, &product.Description, &product.Sku, &product.Price, &product.Stock).Scan(&pk)
 
 	if err != nil {
 		return err
 	}
 
-	defer stmt.Close()
-	stmt.Exec()
-	var lastInsertedId int64
-	err = stmt.QueryRow(&product.Name, &product.Description, &product.Sku, &product.Price, &product.Stock).Scan(&lastInsertedId)
-
-	if err != nil {
-		return err
-	}
-
-	product.ID = lastInsertedId
-	return err
+	product.ID = pk
+	return nil
 
 }
 
@@ -75,7 +72,7 @@ func GetProductById(id int64) (*Product, error) {
 	return &product, nil
 }
 
-func GetProductBySku(sku string) (*Product, error) {
+func GetBySku(sku string) (*Product, error) {
 	query := "SELECT * FROM products WHERE sku = $1"
 	row := database.DB.QueryRow(query, sku)
 

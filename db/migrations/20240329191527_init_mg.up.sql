@@ -1,10 +1,10 @@
 CREATE TABLE
     IF NOT EXISTS products (
         id serial PRIMARY KEY,
-        name character(30) NOT NULL,
+        name text NOT NULL,
         description text NOT NULL,
         sku text NOT NULL UNIQUE,
-        price text NOT NULL,
+        price numeric NOT NULL,
         stock integer NOT NULL
     );
 

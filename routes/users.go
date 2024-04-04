@@ -1,56 +1,47 @@
 package routes
 
 import (
-	"example/buddyseller-api/models"
 	"net/http"
 	"strconv"
+
+	"example/buddyseller-api/models"
 
 	"github.com/gin-gonic/gin"
 )
 
-func getProducts(ctx *gin.Context) {
-	products, err := models.GetAllProducts()
+func getUsers(ctx *gin.Context) {
+	users, err := models.GetAllUsers()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch products. Try again later", "error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Could not fetch users. Try again later",
+			"error":   err.Error(),
+		})
 	}
 
-	ctx.JSON(http.StatusOK, products)
+	ctx.JSON(http.StatusOK, users)
 }
 
-func getProductById(ctx *gin.Context) {
+func getUserById(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Not recognized as a valid Id"})
 		return
 	}
 
-	product, err := models.GetProductById(id)
+	user, err := models.GetUserById(id)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, product)
+	ctx.JSON(http.StatusOK, user)
 }
 
-func getProductBySku(ctx *gin.Context) {
-	sku := ctx.Param("sku")
+func createUser(ctx *gin.Context) {
 
-	product, err := models.GetBySku(sku)
-
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, product)
-}
-
-func createProduct(ctx *gin.Context) {
-
-	var product models.Product
-	err := ctx.ShouldBindJSON(&product)
+	var user models.User
+	err := ctx.ShouldBindJSON(&user)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -60,13 +51,13 @@ func createProduct(ctx *gin.Context) {
 		return
 	}
 
-	err = product.Save()
+	err = user.Save()
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "Error Saving product",
+			"message": "Error Saving User",
 			"details": err.Error(),
-			"caller":  "product.Save()",
+			"caller":  "user.Save()",
 		})
 
 		return
@@ -74,38 +65,38 @@ func createProduct(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "GOOD JOB!",
-		"data":    product,
+		"data":    user,
 	})
 }
 
-func updateProduct(ctx *gin.Context) {
-	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+func updateUser(ctx *gin.Context) {
+	userId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
-	var updatedProduct models.Product
-	err = ctx.ShouldBindJSON(&updatedProduct)
+	var updatedUser models.User
+	err = ctx.ShouldBindJSON(&updatedUser)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
-	updatedProduct.ID = productId
-	err = updatedProduct.Update()
+	updatedUser.ID = userId
+	err = updatedUser.Update()
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, updatedProduct)
+	ctx.JSON(http.StatusOK, updatedUser)
 }
 
-func deleteProduct(ctx *gin.Context) {
+func deleteUser(ctx *gin.Context) {
 	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 
 	if err != nil {
@@ -113,7 +104,7 @@ func deleteProduct(ctx *gin.Context) {
 		return
 	}
 
-	err = models.DeleteProduct(productId)
+	err = models.DeleteUser(productId)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
