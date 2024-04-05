@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"example/buddyseller-api/api"
+	"example/buddyseller-api/api/handlers"
 	"example/buddyseller-api/db"
-	"example/buddyseller-api/db/data_store"
-	"example/buddyseller-api/routes"
+	"example/buddyseller-api/db/datastore"
 	"flag"
 	"log"
 	"net/http"
@@ -25,18 +26,27 @@ func main() {
 	}
 
 	ctx := context.Background()
-	DB, err := db.InitDB(ctx)
+	conn, err := db.InitDB(ctx)
 
 	if err != nil {
 		log.Fatalf("Error initializing database: \n\t%v", err)
 	}
 
-	defer DB.Close(ctx)
+	defer conn.Close(ctx)
 
-	ds := data_store.New(DB)
+	ds := datastore.New(conn)
 
-	r := gin.Default()
-	routes.RegisterRoutes(r)
+	userHandler := handlers.PostgresUserHandler{DS: ds}
+	orderHandler := handlers.PostgresOrderHandler{DS: ds}
+	productHandler := handlers.PostgresProductHandler{DS: ds}
+
+	handlers := api.RouterHandlers{
+		UserHandler:    &userHandler,
+		OrderHandler:   &orderHandler,
+		ProductHandler: &productHandler,
+	}
+
+	r := api.RouterSetup(&handlers)
 
 	// Start HTTP server
 	srv := &http.Server{

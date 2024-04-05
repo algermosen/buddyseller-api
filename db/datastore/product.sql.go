@@ -87,6 +87,36 @@ func (q *Queries) GetProductBySku(ctx context.Context, sku string) (Product, err
 	return i, err
 }
 
+const listProductPrices = `-- name: ListProductPrices :many
+SELECT id, price FROM products
+WHERE id = $1
+`
+
+type ListProductPricesRow struct {
+	ID    int32
+	Price pgtype.Numeric
+}
+
+func (q *Queries) ListProductPrices(ctx context.Context, ids []int32) ([]ListProductPricesRow, error) {
+	rows, err := q.db.Query(ctx, listProductPrices, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProductPricesRow
+	for rows.Next() {
+		var i ListProductPricesRow
+		if err := rows.Scan(&i.ID, &i.Price); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProducts = `-- name: ListProducts :many
 SELECT id, name, description, sku, price, stock FROM products
 `

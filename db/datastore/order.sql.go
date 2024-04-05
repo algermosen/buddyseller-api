@@ -12,12 +12,11 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders(status, total_amount, tax, client_name, client_email, client_phone, note)
-VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+INSERT INTO orders(total_amount, tax, client_name, client_email, client_phone, note)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
 `
 
 type CreateOrderParams struct {
-	Status      OrderStatus
 	TotalAmount pgtype.Numeric
 	Tax         pgtype.Numeric
 	ClientName  pgtype.Text
@@ -28,7 +27,6 @@ type CreateOrderParams struct {
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (int32, error) {
 	row := q.db.QueryRow(ctx, createOrder,
-		arg.Status,
 		arg.TotalAmount,
 		arg.Tax,
 		arg.ClientName,
@@ -41,22 +39,11 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (int32
 	return id, err
 }
 
-const createOrderItems = `-- name: CreateOrderItems :exec
-INSERT INTO order_items(unit_price, product_id, quantity, order_id)
-SELECT p.price, p.id, $2, $3
-FROM products p
-WHERE p.id in ($1)
-`
-
 type CreateOrderItemsParams struct {
-	ID       int32
-	Quantity int32
-	OrderID  int32
-}
-
-func (q *Queries) CreateOrderItems(ctx context.Context, arg CreateOrderItemsParams) error {
-	_, err := q.db.Exec(ctx, createOrderItems, arg.ID, arg.Quantity, arg.OrderID)
-	return err
+	UnitPrice pgtype.Numeric
+	ProductID int32
+	Quantity  int32
+	OrderID   int32
 }
 
 const getOrder = `-- name: GetOrder :one

@@ -6,43 +6,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RouterSetup(
-	userHandler handlers.UserHandler,
-	productHandler handlers.ProductHandler,
-	sessionHandler handlers.SessionHandler,
-	orderHandler handlers.OrderHandler,
-) *gin.Engine {
+type RouterHandlers struct {
+	UserHandler    handlers.UserHandler
+	ProductHandler handlers.ProductHandler
+	SessionHandler handlers.SessionHandler
+	OrderHandler   handlers.OrderHandler
+}
+
+func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 	r := gin.Default()
 
 	userGroup := r.Group("/users")
 	{
-		userGroup.GET("", userHandler.GetUsers)
-		userGroup.GET("/:id", userHandler.GetUserById)
-		userGroup.POST("/", userHandler.CreateUser)
-		userGroup.PATCH("/:id", userHandler.UpdateUser)
-		userGroup.PATCH("/password", userHandler.UpdatePassword)
-		userGroup.DELETE("/:id", userHandler.DeleteUser)
+		userGroup.GET("", handlers.UserHandler.GetUsers)
+		userGroup.GET("/:id", handlers.UserHandler.GetUserById)
+		userGroup.POST("/", handlers.UserHandler.CreateUser)
+		userGroup.PATCH("/:id", handlers.UserHandler.UpdateUser)
+		userGroup.PATCH("/password", handlers.UserHandler.UpdatePassword)
+		userGroup.DELETE("/:id", handlers.UserHandler.DeleteUser)
 	}
 
 	orderGroup := r.Group("/orders")
 	{
-		orderGroup.POST("/orders", orderHandler.PlaceOrder)
-		orderGroup.GET("/orders", orderHandler.GetOrders)
-		orderGroup.GET("/orders/:id", orderHandler.GetOrderById)
-		orderGroup.DELETE("/orders/:id", orderHandler.CancelOrder)
-		orderGroup.PATCH("/orders/:id/:status", orderHandler.UpdateStatus)
+		orderGroup.POST("/orders", handlers.OrderHandler.PlaceOrder)
+		orderGroup.GET("/orders", handlers.OrderHandler.GetOrders)
+		orderGroup.GET("/orders/:id", handlers.OrderHandler.GetOrderById)
+		orderGroup.DELETE("/orders/:id", handlers.OrderHandler.CancelOrder)
+		orderGroup.PATCH("/orders/:id/:status", handlers.OrderHandler.UpdateStatus)
 	}
 
 	productGroup := r.Group("")
 	{
-		productGroup.GET("/products", productHandler.GetProducts)
-		productGroup.GET("/products/:identifier", productHandler.GetProduct)
-		productGroup.POST("/products", productHandler.CreateProduct)
-		productGroup.PATCH("/products/:id", productHandler.UpdateProduct)
-		productGroup.DELETE("/products/:id", productHandler.DeleteProduct)
+		productGroup.GET("/products", handlers.ProductHandler.GetProducts)
+		productGroup.GET("/products/:identifier", handlers.ProductHandler.GetProduct)
+		productGroup.POST("/products", handlers.ProductHandler.CreateProduct)
+		productGroup.PATCH("/products/:id", handlers.ProductHandler.UpdateProduct)
+		productGroup.DELETE("/products/:id", handlers.ProductHandler.DeleteProduct)
 	}
 
-	r.POST("/login", sessionHandler.Login)
+	r.POST("/login", handlers.SessionHandler.Login)
 
 	return r
 }

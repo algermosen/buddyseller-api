@@ -1,6 +1,6 @@
 package dtos
 
 type OrderItemDto struct {
-	Quantity  int64
-	ProductID int64
+	Quantity  int32
+	ProductID int32
 }

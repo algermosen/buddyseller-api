@@ -10,11 +10,11 @@ import (
 )
 
 type PostgresProductHandler struct {
-	ds *datastore.Queries
+	DS *datastore.Queries
 }
 
 func (handler *PostgresProductHandler) GetProducts(ctx *gin.Context) {
-	products, err := handler.ds.ListProducts(ctx)
+	products, err := handler.DS.ListProducts(ctx)
 	if err != nil {
 		operationErr := &operationError{Entity: "products", Operation: OperationGet, Err: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": operationErr.Msg()})
@@ -38,10 +38,10 @@ func (handler *PostgresProductHandler) GetProduct(ctx *gin.Context) {
 	if err != nil {
 		sku = identifier
 		log.Println("Getting product with sku...")
-		product, err = handler.ds.GetProductBySku(ctx, sku)
+		product, err = handler.DS.GetProductBySku(ctx, sku)
 	} else {
 		log.Println("Getting product with id...")
-		product, err = handler.ds.GetProductById(ctx, int32(id))
+		product, err = handler.DS.GetProductById(ctx, int32(id))
 	}
 
 	if err != nil {
@@ -79,7 +79,7 @@ func (handler *PostgresProductHandler) UpdateProduct(ctx *gin.Context) {
 	}
 
 	productParams.ID = int32(productId)
-	err = handler.ds.UpdateProduct(ctx, productParams)
+	err = handler.DS.UpdateProduct(ctx, productParams)
 
 	if err != nil {
 		operationErr := &operationError{Entity: "product", Operation: OperationUpdate, Err: err}
@@ -116,7 +116,7 @@ func (handler *PostgresProductHandler) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
-	pk, err := handler.ds.CreateProduct(ctx, productParams)
+	pk, err := handler.DS.CreateProduct(ctx, productParams)
 
 	if err != nil {
 		operationErr := &operationError{Entity: "product", Operation: OperationSave, Err: err}
@@ -150,7 +150,7 @@ func (handler *PostgresProductHandler) DeleteProduct(ctx *gin.Context) {
 		return
 	}
 
-	err = handler.ds.DeleteProduct(ctx, int32(productId))
+	err = handler.DS.DeleteProduct(ctx, int32(productId))
 
 	if err != nil {
 		operationErr := &operationError{Entity: "product", Operation: OperationGet, Err: err}

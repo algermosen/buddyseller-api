@@ -7,3 +7,9 @@ sql:
       go:
         out: "db/datastore"
         sql_package: "pgx/v5"
+        overrides:
+          - db_type: "ListProductPricesRow"
+            go_type: 
+              type: "PriceRow"
+              package: "db"
+              import: "db"

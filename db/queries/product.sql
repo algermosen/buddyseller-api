@@ -5,6 +5,10 @@ VALUES ($1, $2, $3, $4, $5) RETURNING id;
 -- name: ListProducts :many
 SELECT * FROM products;
 
+-- name: ListProductPrices :many
+SELECT id, price FROM products
+WHERE id = sqlc.slice('ids');
+
 -- name: GetProductById :one
 SELECT * FROM products 
 WHERE id = $1

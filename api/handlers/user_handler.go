@@ -10,11 +10,11 @@ import (
 )
 
 type PostgresUserHandler struct {
-	ds *datastore.Queries
+	DS *datastore.Queries
 }
 
 func (handler *PostgresUserHandler) GetUsers(ctx *gin.Context) {
-	users, err := handler.ds.ListUsers(ctx)
+	users, err := handler.DS.ListUsers(ctx)
 	if err != nil {
 		operationErr := &operationError{Entity: "users", Operation: OperationGet, Err: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": operationErr.Msg()})
@@ -34,7 +34,7 @@ func (handler *PostgresUserHandler) GetUserById(ctx *gin.Context) {
 		return
 	}
 
-	user, err := handler.ds.GetUser(ctx, int32(id))
+	user, err := handler.DS.GetUser(ctx, int32(id))
 
 	if err != nil {
 		operationErr := &operationError{Entity: "user", Operation: OperationGet, Err: err}
@@ -62,7 +62,7 @@ func (handler *PostgresUserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	pk, err := handler.ds.CreateUser(ctx, userParams)
+	pk, err := handler.DS.CreateUser(ctx, userParams)
 
 	if err != nil {
 		operationErr := &operationError{Entity: "user", Operation: OperationSave, Err: err}
@@ -107,7 +107,7 @@ func (handler *PostgresUserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	userParams.ID = int32(userId)
-	err = handler.ds.UpdateUser(ctx, userParams)
+	err = handler.DS.UpdateUser(ctx, userParams)
 
 	if err != nil {
 		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, Err: err}
@@ -152,7 +152,7 @@ func (handler *PostgresUserHandler) UpdatePassword(ctx *gin.Context) {
 	}
 
 	userParams.ID = int32(userId)
-	err = handler.ds.UpdatePassword(ctx, userParams)
+	err = handler.DS.UpdatePassword(ctx, userParams)
 
 	if err != nil {
 		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, Err: err}
@@ -176,7 +176,7 @@ func (handler *PostgresUserHandler) DeleteUser(ctx *gin.Context) {
 		return
 	}
 
-	err = handler.ds.DeleteUser(ctx, int32(userId))
+	err = handler.DS.DeleteUser(ctx, int32(userId))
 
 	if err != nil {
 		operationErr := &operationError{Entity: "user", Operation: OperationDelete, Err: err}

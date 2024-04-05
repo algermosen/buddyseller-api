@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+var conn *pgx.Conn
+
 func InitDB(ctx context.Context) (*pgx.Conn, error) {
 	var err error
 
@@ -19,7 +21,7 @@ func InitDB(ctx context.Context) (*pgx.Conn, error) {
 		return nil, err
 	}
 
-	DB, err := pgx.Connect(ctx, url)
+	conn, err = pgx.Connect(ctx, url)
 
 	if err != nil {
 		err = &databaseConnectionError{Err: err}
@@ -27,7 +29,11 @@ func InitDB(ctx context.Context) (*pgx.Conn, error) {
 		return nil, err
 	}
 
-	return DB, err
+	return conn, err
+}
+
+func BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return conn.Begin(ctx)
 }
 
 func getConnectionString() (string, error) {

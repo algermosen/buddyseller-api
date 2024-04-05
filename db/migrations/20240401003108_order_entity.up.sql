@@ -1,9 +1,9 @@
-CREATE TYPE IF NOT EXISTS order_status AS ENUM ('pending', 'shipped', 'delivered', 'cancelled');
+CREATE TYPE order_status AS ENUM ('pending', 'shipped', 'delivered', 'cancelled');
 
 CREATE TABLE
     IF NOT EXISTS orders (
         id serial PRIMARY KEY,
-        status order_status NOT NULL,
+        status order_status NOT NULL DEFAULT 'pending',
         total_amount numeric NOT NULL,
         tax numeric NOT NULL,
         created timestamp DEFAULT NOW (),
