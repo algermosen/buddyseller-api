@@ -7,3 +7,8 @@ type NewOrderDto struct {
 	Note        string
 	Items       []OrderItemDto
 }
+
+type OrderItemDto struct {
+	Quantity  int32
+	ProductID int32
+}

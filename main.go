@@ -22,14 +22,14 @@ func main() {
 	err := loadEnv()
 
 	if err != nil {
-		log.Fatalf("Error loading environment: \n\t%v", err)
+		log.Fatalf("Error loading environment: \n%v", err)
 	}
 
 	ctx := context.Background()
 	conn, err := db.InitDB(ctx)
 
 	if err != nil {
-		log.Fatalf("Error initializing database: \n\t%v", err)
+		log.Fatalf("Error initializing database: \n%v", err)
 	}
 
 	defer conn.Close(ctx)
@@ -39,11 +39,13 @@ func main() {
 	userHandler := handlers.PostgresUserHandler{DS: ds}
 	orderHandler := handlers.PostgresOrderHandler{DS: ds}
 	productHandler := handlers.PostgresProductHandler{DS: ds}
+	sessionHandler := handlers.PostgresSessionHandler{DS: ds}
 
 	handlers := api.RouterHandlers{
 		UserHandler:    &userHandler,
 		OrderHandler:   &orderHandler,
 		ProductHandler: &productHandler,
+		SessionHandler: &sessionHandler,
 	}
 
 	r := api.RouterSetup(&handlers)
@@ -56,7 +58,7 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe failed: \n\t%v", err)
+			log.Fatalf("ListenAndServe failed: \n%v", err)
 		}
 	}()
 
@@ -77,9 +79,10 @@ func loadEnv() error {
 		err = godotenv.Load(".env")
 	case "test":
 	case "debug":
-	default:
 		gin.SetMode(gin.DebugMode)
 		err = godotenv.Load(".env.dev")
+	default:
+		panic("Must provide environment to be executed. 'release' | 'debug' | 'test'")
 	}
 
 	return err
@@ -98,7 +101,7 @@ func waitForShutdown(server *http.Server) {
 	// Shutdown the server gracefully
 	log.Println("Shutting down server...")
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server shutdown failed: \n\t%v", err)
+		log.Fatalf("Server shutdown failed: \n%v", err)
 	}
 	log.Println("Server gracefully stopped")
 }

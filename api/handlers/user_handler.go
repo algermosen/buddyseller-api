@@ -1,31 +1,40 @@
 package handlers
 
 import (
+	"errors"
 	"example/buddyseller-api/db/datastore"
+	"example/buddyseller-api/utils"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type PostgresUserHandler struct {
 	DS *datastore.Queries
 }
 
-func (handler *PostgresUserHandler) GetUsers(ctx *gin.Context) {
-	users, err := handler.DS.ListUsers(ctx)
+func (h *PostgresUserHandler) GetUsers(ctx *gin.Context) {
+	users, err := h.DS.ListUsers(ctx)
 	if err != nil {
-		operationErr := &operationError{Entity: "users", Operation: OperationGet, Err: err}
+		operationErr := &operationError{Entity: "users", Operation: OperationGet, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": operationErr.Msg()})
 		log.Println(operationErr.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, users)
+	if users == nil {
+		ctx.JSON(http.StatusOK, gin.H{"data": make([]interface{}, 0)})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": users})
 }
 
-func (handler *PostgresUserHandler) GetUserById(ctx *gin.Context) {
+func (h *PostgresUserHandler) GetUserById(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		notValidParamErr := &notValidParamError{Param: "id", Err: err}
@@ -34,10 +43,18 @@ func (handler *PostgresUserHandler) GetUserById(ctx *gin.Context) {
 		return
 	}
 
-	user, err := handler.DS.GetUser(ctx, int32(id))
+	user, err := h.DS.GetUser(ctx, int32(id))
 
 	if err != nil {
-		operationErr := &operationError{Entity: "user", Operation: OperationGet, Err: err}
+		if errors.Is(err, pgx.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": fmt.Sprintf("No user found with id '%v'.", id),
+			})
+			log.Println(err.Error())
+			return
+		}
+
+		operationErr := &operationError{Entity: "user", Operation: OperationGet, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -48,7 +65,7 @@ func (handler *PostgresUserHandler) GetUserById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (handler *PostgresUserHandler) CreateUser(ctx *gin.Context) {
+func (h *PostgresUserHandler) CreateUser(ctx *gin.Context) {
 
 	var userParams datastore.CreateUserParams
 	err := ctx.ShouldBindJSON(&userParams)
@@ -62,10 +79,23 @@ func (handler *PostgresUserHandler) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	pk, err := handler.DS.CreateUser(ctx, userParams)
+	hashedPassword, err := utils.HashPassword(userParams.Password)
 
 	if err != nil {
-		operationErr := &operationError{Entity: "user", Operation: OperationSave, Err: err}
+		msg := "Error hashing password."
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
+		return
+	}
+
+	userParams.Password = hashedPassword
+
+	pk, err := h.DS.CreateUser(ctx, userParams)
+
+	if err != nil {
+		operationErr := &operationError{Entity: "user", Operation: OperationSave, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -84,7 +114,7 @@ func (handler *PostgresUserHandler) CreateUser(ctx *gin.Context) {
 	})
 }
 
-func (handler *PostgresUserHandler) UpdateUser(ctx *gin.Context) {
+func (h *PostgresUserHandler) UpdateUser(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 
 	if err != nil {
@@ -107,14 +137,23 @@ func (handler *PostgresUserHandler) UpdateUser(ctx *gin.Context) {
 	}
 
 	userParams.ID = int32(userId)
-	err = handler.DS.UpdateUser(ctx, userParams)
+	rowsAffected, err := h.DS.UpdateUser(ctx, userParams)
 
 	if err != nil {
-		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, Err: err}
+		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
 		log.Println(operationErr.Error())
+		return
+	}
+
+	if rowsAffected == 0 {
+		msg := fmt.Sprintf("No user found with id '%v'.", userId)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
 		return
 	}
 
@@ -129,7 +168,7 @@ func (handler *PostgresUserHandler) UpdateUser(ctx *gin.Context) {
 	})
 }
 
-func (handler *PostgresUserHandler) UpdatePassword(ctx *gin.Context) {
+func (h *PostgresUserHandler) UpdatePassword(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 
 	if err != nil {
@@ -152,10 +191,10 @@ func (handler *PostgresUserHandler) UpdatePassword(ctx *gin.Context) {
 	}
 
 	userParams.ID = int32(userId)
-	err = handler.DS.UpdatePassword(ctx, userParams)
+	rowsAffected, err := h.DS.UpdatePassword(ctx, userParams)
 
 	if err != nil {
-		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, Err: err}
+		operationErr := &operationError{Entity: "user", Operation: OperationUpdate, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -163,10 +202,19 @@ func (handler *PostgresUserHandler) UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
+	if rowsAffected == 0 {
+		msg := fmt.Sprintf("No user found with id '%v'.", userId)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
+		return
+	}
+
 	ctx.Status(http.StatusOK)
 }
 
-func (handler *PostgresUserHandler) DeleteUser(ctx *gin.Context) {
+func (h *PostgresUserHandler) DeleteUser(ctx *gin.Context) {
 	userId, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 
 	if err != nil {
@@ -176,14 +224,23 @@ func (handler *PostgresUserHandler) DeleteUser(ctx *gin.Context) {
 		return
 	}
 
-	err = handler.DS.DeleteUser(ctx, int32(userId))
+	rowsAffected, err := h.DS.DeleteUser(ctx, int32(userId))
 
 	if err != nil {
-		operationErr := &operationError{Entity: "user", Operation: OperationDelete, Err: err}
+		operationErr := &operationError{Entity: "user", Operation: OperationDelete, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
 		log.Println(operationErr.Error())
+		return
+	}
+
+	if rowsAffected == 0 {
+		msg := fmt.Sprintf("No user found with id '%v'.", userId)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
 		return
 	}
 

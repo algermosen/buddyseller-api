@@ -11,14 +11,33 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelOrder = `-- name: CancelOrder :exec
+UPDATE orders
+SET status = 'cancelled',
+    cancelled = NOW (),
+    cancellation_reason = $2
+WHERE id = $1
+`
+
+type CancelOrderParams struct {
+	ID                 int32
+	CancellationReason pgtype.Text
+}
+
+func (q *Queries) CancelOrder(ctx context.Context, arg CancelOrderParams) error {
+	_, err := q.db.Exec(ctx, cancelOrder, arg.ID, arg.CancellationReason)
+	return err
+}
+
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders(total_amount, tax, client_name, client_email, client_phone, note)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+INSERT INTO orders(total_amount, tax, user_id, client_name, client_email, client_phone, note)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
 `
 
 type CreateOrderParams struct {
 	TotalAmount pgtype.Numeric
 	Tax         pgtype.Numeric
+	UserID      int32
 	ClientName  pgtype.Text
 	ClientEmail pgtype.Text
 	ClientPhone pgtype.Text
@@ -29,6 +48,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (int32
 	row := q.db.QueryRow(ctx, createOrder,
 		arg.TotalAmount,
 		arg.Tax,
+		arg.UserID,
 		arg.ClientName,
 		arg.ClientEmail,
 		arg.ClientPhone,
@@ -47,7 +67,7 @@ type CreateOrderItemsParams struct {
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, status, total_amount, tax, created, shipped, cancelled, delivered, client_name, client_email, client_phone, note, cancellation_reason FROM orders WHERE id = $1
+SELECT id, status, total_amount, tax, user_id, created, shipped, cancelled, delivered, client_name, client_email, client_phone, note, cancellation_reason FROM orders WHERE id = $1
 `
 
 func (q *Queries) GetOrder(ctx context.Context, id int32) (Order, error) {
@@ -58,6 +78,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int32) (Order, error) {
 		&i.Status,
 		&i.TotalAmount,
 		&i.Tax,
+		&i.UserID,
 		&i.Created,
 		&i.Shipped,
 		&i.Cancelled,
@@ -71,8 +92,40 @@ func (q *Queries) GetOrder(ctx context.Context, id int32) (Order, error) {
 	return i, err
 }
 
+const getOrderItemsDetail = `-- name: GetOrderItemsDetail :many
+SELECT p.name, oi.unit_price, oi.quantity FROM order_items oi
+JOIN products p ON oi.product_id = p.id
+WHERE oi.order_id = $1
+`
+
+type GetOrderItemsDetailRow struct {
+	Name      string
+	UnitPrice pgtype.Numeric
+	Quantity  int32
+}
+
+func (q *Queries) GetOrderItemsDetail(ctx context.Context, orderID int32) ([]GetOrderItemsDetailRow, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsDetail, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOrderItemsDetailRow
+	for rows.Next() {
+		var i GetOrderItemsDetailRow
+		if err := rows.Scan(&i.Name, &i.UnitPrice, &i.Quantity); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOrders = `-- name: ListOrders :many
-SELECT id, status, total_amount, tax, created, shipped, cancelled, delivered, client_name, client_email, client_phone, note, cancellation_reason FROM orders
+SELECT id, status, total_amount, tax, user_id, created, shipped, cancelled, delivered, client_name, client_email, client_phone, note, cancellation_reason FROM orders
 `
 
 func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
@@ -89,6 +142,7 @@ func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
 			&i.Status,
 			&i.TotalAmount,
 			&i.Tax,
+			&i.UserID,
 			&i.Created,
 			&i.Shipped,
 			&i.Cancelled,
@@ -111,16 +165,22 @@ func (q *Queries) ListOrders(ctx context.Context) ([]Order, error) {
 
 const updateOrderStatus = `-- name: UpdateOrderStatus :exec
 UPDATE orders
-SET status = $2
+SET status = $2::order_status,
+    shipped = CASE
+        WHEN $2::order_status = 'shipped' THEN NOW () ELSE shipped END,
+    delivered = CASE
+        WHEN $2::order_status = 'delivered' THEN NOW () ELSE delivered END,
+    cancelled = CASE
+        WHEN $2::order_status = 'cancelled' THEN NOW () ELSE cancelled END
 WHERE id = $1
 `
 
 type UpdateOrderStatusParams struct {
-	ID     int32
-	Status OrderStatus
+	ID      int32
+	Column2 OrderStatus
 }
 
 func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
-	_, err := q.db.Exec(ctx, updateOrderStatus, arg.ID, arg.Status)
+	_, err := q.db.Exec(ctx, updateOrderStatus, arg.ID, arg.Column2)
 	return err
 }

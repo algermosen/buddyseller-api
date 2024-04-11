@@ -10,7 +10,7 @@ type notValidParamError struct {
 }
 
 func (e *notValidParamError) Error() string {
-	return fmt.Sprintf("Not a valid param '%s': \n\t%v", e.Param, e.Err.Error())
+	return fmt.Sprintf("Not a valid param '%s': \n%v", e.Param, e.Err.Error())
 }
 
 func (e *notValidParamError) Msg() string {
@@ -22,11 +22,11 @@ func (e *notValidParamError) Msg() string {
 type operationError struct {
 	Entity    string
 	Operation operation
-	Err       error
+	origin    error
 }
 
 func (e *operationError) Error() string {
-	return fmt.Sprintf("Something went wrong %s the %s: %v", e.Operation, e.Entity, e.Err.Error())
+	return fmt.Sprintf("Something went wrong %s the %s: %v", e.Operation, e.Entity, e.origin.Error())
 }
 
 func (e *operationError) Msg() string {
@@ -40,7 +40,7 @@ type jsonBindingError struct {
 }
 
 func (e *jsonBindingError) Error() string {
-	return fmt.Sprintf("Invalid request format. Please provide valid JSON data: \n\t%v", e.Err.Error())
+	return fmt.Sprintf("Invalid request format. Please provide valid JSON data: \n%v", e.Err.Error())
 }
 
 func (e *jsonBindingError) Msg() string {

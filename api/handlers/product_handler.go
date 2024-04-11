@@ -1,31 +1,40 @@
 package handlers
 
 import (
+	"errors"
 	"example/buddyseller-api/db/datastore"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type PostgresProductHandler struct {
 	DS *datastore.Queries
 }
 
-func (handler *PostgresProductHandler) GetProducts(ctx *gin.Context) {
-	products, err := handler.DS.ListProducts(ctx)
+func (h *PostgresProductHandler) GetProducts(ctx *gin.Context) {
+	products, err := h.DS.ListProducts(ctx)
+
 	if err != nil {
-		operationErr := &operationError{Entity: "products", Operation: OperationGet, Err: err}
+		operationErr := &operationError{Entity: "products", Operation: OperationGet, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": operationErr.Msg()})
 		log.Println(operationErr.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, products)
+	if products == nil {
+		ctx.JSON(http.StatusOK, gin.H{"data": make([]interface{}, 0)})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": products})
 }
 
-func (handler *PostgresProductHandler) GetProduct(ctx *gin.Context) {
+func (h *PostgresProductHandler) GetProduct(ctx *gin.Context) {
 	identifier := ctx.Param("identifier")
 	var (
 		id      int64
@@ -38,14 +47,22 @@ func (handler *PostgresProductHandler) GetProduct(ctx *gin.Context) {
 	if err != nil {
 		sku = identifier
 		log.Println("Getting product with sku...")
-		product, err = handler.DS.GetProductBySku(ctx, sku)
+		product, err = h.DS.GetProductBySku(ctx, sku)
 	} else {
 		log.Println("Getting product with id...")
-		product, err = handler.DS.GetProductById(ctx, int32(id))
+		product, err = h.DS.GetProductById(ctx, int32(id))
 	}
 
 	if err != nil {
-		operationErr := &operationError{Entity: "product", Operation: OperationGet, Err: err}
+		if errors.Is(err, pgx.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"message": fmt.Sprintf("No product found with identifier '%v'.", identifier),
+			})
+			log.Println(err.Error())
+			return
+		}
+
+		operationErr := &operationError{Entity: "product", Operation: OperationGet, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -56,7 +73,7 @@ func (handler *PostgresProductHandler) GetProduct(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, product)
 }
 
-func (handler *PostgresProductHandler) UpdateProduct(ctx *gin.Context) {
+func (h *PostgresProductHandler) UpdateProduct(ctx *gin.Context) {
 	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 
 	if err != nil {
@@ -79,14 +96,23 @@ func (handler *PostgresProductHandler) UpdateProduct(ctx *gin.Context) {
 	}
 
 	productParams.ID = int32(productId)
-	err = handler.DS.UpdateProduct(ctx, productParams)
+	rowsAffected, err := h.DS.UpdateProduct(ctx, productParams)
 
 	if err != nil {
-		operationErr := &operationError{Entity: "product", Operation: OperationUpdate, Err: err}
+		operationErr := &operationError{Entity: "product", Operation: OperationUpdate, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
 		log.Println(operationErr.Error())
+		return
+	}
+
+	if rowsAffected == 0 {
+		msg := fmt.Sprintf("No product found with identifier '%v'.", productId)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
 		return
 	}
 
@@ -103,7 +129,7 @@ func (handler *PostgresProductHandler) UpdateProduct(ctx *gin.Context) {
 	})
 }
 
-func (handler *PostgresProductHandler) CreateProduct(ctx *gin.Context) {
+func (h *PostgresProductHandler) CreateProduct(ctx *gin.Context) {
 	var productParams datastore.CreateProductParams
 	err := ctx.ShouldBindJSON(&productParams)
 
@@ -116,10 +142,10 @@ func (handler *PostgresProductHandler) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
-	pk, err := handler.DS.CreateProduct(ctx, productParams)
+	pk, err := h.DS.CreateProduct(ctx, productParams)
 
 	if err != nil {
-		operationErr := &operationError{Entity: "product", Operation: OperationSave, Err: err}
+		operationErr := &operationError{Entity: "product", Operation: OperationSave, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -140,7 +166,7 @@ func (handler *PostgresProductHandler) CreateProduct(ctx *gin.Context) {
 	})
 }
 
-func (handler *PostgresProductHandler) DeleteProduct(ctx *gin.Context) {
+func (h *PostgresProductHandler) DeleteProduct(ctx *gin.Context) {
 	productId, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 
 	if err != nil {
@@ -150,10 +176,10 @@ func (handler *PostgresProductHandler) DeleteProduct(ctx *gin.Context) {
 		return
 	}
 
-	err = handler.DS.DeleteProduct(ctx, int32(productId))
+	rowsAffected, err := h.DS.DeleteProduct(ctx, int32(productId))
 
 	if err != nil {
-		operationErr := &operationError{Entity: "product", Operation: OperationGet, Err: err}
+		operationErr := &operationError{Entity: "product", Operation: OperationGet, origin: err}
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": operationErr.Msg(),
 		})
@@ -161,5 +187,16 @@ func (handler *PostgresProductHandler) DeleteProduct(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if rowsAffected == 0 {
+		msg := fmt.Sprintf("No product found with identifier '%v'.", productId)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": msg,
+		})
+		log.Println(msg)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Product deleted succesfully.",
+	})
 }

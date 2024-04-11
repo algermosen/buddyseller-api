@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"math"
 	"math/big"
 
@@ -21,15 +22,20 @@ func NumericToFloat(n pgtype.Numeric) float64 {
 }
 
 func FloatToNumeric(f float64) pgtype.Numeric {
-	var n pgtype.Numeric
-	n.Exp = 0
+	var n = pgtype.Numeric{Exp: 0}
+
+	if f == 0.0 {
+		n.Int = big.NewInt(0)
+		n.Valid = true
+		return n
+	}
 
 	var shift int8 = 0
 	var maxIterations = 100
 
 	for {
 		if maxIterations == 0 {
-			panic("Infinite loop")
+			log.Panicf("FloatToNumeric: Infinite loop '%f'", f)
 		}
 
 		residual := math.Mod(f, 1)

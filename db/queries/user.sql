@@ -10,7 +10,7 @@ SELECT * FROM users
 WHERE id = $1
 LIMIT 1;
 
--- name: UpdateUser :exec
+-- name: UpdateUser :execrows
 UPDATE users
 SET 
     name = $2,
@@ -18,13 +18,13 @@ SET
     email = $4
 WHERE id = $1;
 
--- name: UpdatePassword :exec
+-- name: UpdatePassword :execrows
 UPDATE users
 SET 
     password = $2
 WHERE id = $1;
 
--- name: DeleteUser :exec
+-- name: DeleteUser :execrows
 DELETE FROM users
 WHERE id = $1;
 

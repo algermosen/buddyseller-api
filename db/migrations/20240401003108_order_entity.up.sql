@@ -6,6 +6,7 @@ CREATE TABLE
         status order_status NOT NULL DEFAULT 'pending',
         total_amount numeric NOT NULL,
         tax numeric NOT NULL,
+        user_id integer NOT NULL REFERENCES users(id),
         created timestamp DEFAULT NOW (),
         shipped timestamp,
         cancelled timestamp,

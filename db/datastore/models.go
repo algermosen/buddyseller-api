@@ -60,6 +60,7 @@ type Order struct {
 	Status             OrderStatus
 	TotalAmount        pgtype.Numeric
 	Tax                pgtype.Numeric
+	UserID             int32
 	Created            pgtype.Timestamp
 	Shipped            pgtype.Timestamp
 	Cancelled          pgtype.Timestamp

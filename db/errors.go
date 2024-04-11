@@ -7,5 +7,5 @@ type databaseConnectionError struct {
 }
 
 func (e *databaseConnectionError) Error() string {
-	return fmt.Sprintf("Error connecting the database: \n\t%s", e.Err.Error())
+	return fmt.Sprintf("Error connecting the database: \n%s", e.Err.Error())
 }

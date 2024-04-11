@@ -5,9 +5,9 @@ VALUES ($1, $2, $3, $4, $5) RETURNING id;
 -- name: ListProducts :many
 SELECT * FROM products;
 
--- name: ListProductPrices :many
-SELECT id, price FROM products
-WHERE id = sqlc.slice('ids');
+-- name: ListProductsToOrder :many
+SELECT id, price, stock FROM products
+WHERE id = ANY($1::int[]);
 
 -- name: GetProductById :one
 SELECT * FROM products 
@@ -19,7 +19,7 @@ SELECT * FROM products
 WHERE sku = $1
 LIMIT 1;
 
--- name: UpdateProduct :exec
+-- name: UpdateProduct :execrows
 UPDATE products
 	SET 
 		name = $2,
@@ -29,6 +29,13 @@ UPDATE products
 		stock = $6
 	WHERE id = $1;
 
--- name: DeleteProduct :exec
+-- name: UpdateStock :exec
+UPDATE products
+	SET 
+		stock = $2
+	WHERE id = $1;
+
+-- name: DeleteProduct :execrows
 DELETE FROM products
 	WHERE id = $1;
+

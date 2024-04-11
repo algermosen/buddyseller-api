@@ -2,6 +2,7 @@ package api
 
 import (
 	"example/buddyseller-api/api/handlers"
+	"example/buddyseller-api/api/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +19,7 @@ func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 
 	userGroup := r.Group("/users")
 	{
-		userGroup.GET("", handlers.UserHandler.GetUsers)
+		userGroup.GET("/", handlers.UserHandler.GetUsers)
 		userGroup.GET("/:id", handlers.UserHandler.GetUserById)
 		userGroup.POST("/", handlers.UserHandler.CreateUser)
 		userGroup.PATCH("/:id", handlers.UserHandler.UpdateUser)
@@ -28,20 +29,21 @@ func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 
 	orderGroup := r.Group("/orders")
 	{
-		orderGroup.POST("/orders", handlers.OrderHandler.PlaceOrder)
-		orderGroup.GET("/orders", handlers.OrderHandler.GetOrders)
-		orderGroup.GET("/orders/:id", handlers.OrderHandler.GetOrderById)
-		orderGroup.DELETE("/orders/:id", handlers.OrderHandler.CancelOrder)
-		orderGroup.PATCH("/orders/:id/:status", handlers.OrderHandler.UpdateStatus)
+		orderGroup.Use(middleware.Authenticate)
+		orderGroup.POST("/", handlers.OrderHandler.PlaceOrder)
+		orderGroup.GET("/", handlers.OrderHandler.GetOrders)
+		orderGroup.GET("/:id", handlers.OrderHandler.GetOrderById)
+		orderGroup.DELETE("/:id", handlers.OrderHandler.CancelOrder)
+		orderGroup.PATCH("/:id/:status", handlers.OrderHandler.UpdateStatus)
 	}
 
-	productGroup := r.Group("")
+	productGroup := r.Group("/products")
 	{
-		productGroup.GET("/products", handlers.ProductHandler.GetProducts)
-		productGroup.GET("/products/:identifier", handlers.ProductHandler.GetProduct)
-		productGroup.POST("/products", handlers.ProductHandler.CreateProduct)
-		productGroup.PATCH("/products/:id", handlers.ProductHandler.UpdateProduct)
-		productGroup.DELETE("/products/:id", handlers.ProductHandler.DeleteProduct)
+		productGroup.GET("/", handlers.ProductHandler.GetProducts)
+		productGroup.GET("/:identifier", handlers.ProductHandler.GetProduct)
+		productGroup.POST("/", handlers.ProductHandler.CreateProduct)
+		productGroup.PATCH("/:id", handlers.ProductHandler.UpdateProduct)
+		productGroup.DELETE("/:id", handlers.ProductHandler.DeleteProduct)
 	}
 
 	r.POST("/login", handlers.SessionHandler.Login)

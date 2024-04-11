@@ -37,14 +37,17 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (i
 	return id, err
 }
 
-const deleteProduct = `-- name: DeleteProduct :exec
+const deleteProduct = `-- name: DeleteProduct :execrows
 DELETE FROM products
 	WHERE id = $1
 `
 
-func (q *Queries) DeleteProduct(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteProduct, id)
-	return err
+func (q *Queries) DeleteProduct(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteProduct, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getProductById = `-- name: GetProductById :one
@@ -87,36 +90,6 @@ func (q *Queries) GetProductBySku(ctx context.Context, sku string) (Product, err
 	return i, err
 }
 
-const listProductPrices = `-- name: ListProductPrices :many
-SELECT id, price FROM products
-WHERE id = $1
-`
-
-type ListProductPricesRow struct {
-	ID    int32
-	Price pgtype.Numeric
-}
-
-func (q *Queries) ListProductPrices(ctx context.Context, ids []int32) ([]ListProductPricesRow, error) {
-	rows, err := q.db.Query(ctx, listProductPrices, ids)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListProductPricesRow
-	for rows.Next() {
-		var i ListProductPricesRow
-		if err := rows.Scan(&i.ID, &i.Price); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listProducts = `-- name: ListProducts :many
 SELECT id, name, description, sku, price, stock FROM products
 `
@@ -148,7 +121,38 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 	return items, nil
 }
 
-const updateProduct = `-- name: UpdateProduct :exec
+const listProductsToOrder = `-- name: ListProductsToOrder :many
+SELECT id, price, stock FROM products
+WHERE id = ANY($1::int[])
+`
+
+type ListProductsToOrderRow struct {
+	ID    int32
+	Price pgtype.Numeric
+	Stock int32
+}
+
+func (q *Queries) ListProductsToOrder(ctx context.Context, dollar_1 []int32) ([]ListProductsToOrderRow, error) {
+	rows, err := q.db.Query(ctx, listProductsToOrder, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProductsToOrderRow
+	for rows.Next() {
+		var i ListProductsToOrderRow
+		if err := rows.Scan(&i.ID, &i.Price, &i.Stock); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateProduct = `-- name: UpdateProduct :execrows
 UPDATE products
 	SET 
 		name = $2,
@@ -168,8 +172,8 @@ type UpdateProductParams struct {
 	Stock       int32
 }
 
-func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
-	_, err := q.db.Exec(ctx, updateProduct,
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateProduct,
 		arg.ID,
 		arg.Name,
 		arg.Description,
@@ -177,5 +181,25 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.Price,
 		arg.Stock,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateStock = `-- name: UpdateStock :exec
+UPDATE products
+	SET 
+		stock = $2
+	WHERE id = $1
+`
+
+type UpdateStockParams struct {
+	ID    int32
+	Stock int32
+}
+
+func (q *Queries) UpdateStock(ctx context.Context, arg UpdateStockParams) error {
+	_, err := q.db.Exec(ctx, updateStock, arg.ID, arg.Stock)
 	return err
 }

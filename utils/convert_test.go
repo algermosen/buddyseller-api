@@ -23,6 +23,7 @@ func TestFloatToNumeric(t *testing.T) {
 		NumericInt int
 		NumericExp int
 	}{
+		{Float: 0.0, NumericInt: 0, NumericExp: 0},
 		{Float: 5.3, NumericInt: 53, NumericExp: -1},
 		{Float: 0.045, NumericInt: 45, NumericExp: -3},
 		{Float: 38900, NumericInt: 389, NumericExp: 2},
