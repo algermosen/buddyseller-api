@@ -19,9 +19,9 @@ func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 
 	userGroup := r.Group("/users")
 	{
-		userGroup.GET("/", handlers.UserHandler.GetUsers)
+		userGroup.GET("", handlers.UserHandler.GetUsers)
 		userGroup.GET("/:id", handlers.UserHandler.GetUserById)
-		userGroup.POST("/", handlers.UserHandler.CreateUser)
+		userGroup.POST("", handlers.UserHandler.CreateUser)
 		userGroup.PATCH("/:id", handlers.UserHandler.UpdateUser)
 		userGroup.PATCH("/password", handlers.UserHandler.UpdatePassword)
 		userGroup.DELETE("/:id", handlers.UserHandler.DeleteUser)
@@ -30,8 +30,8 @@ func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 	orderGroup := r.Group("/orders")
 	{
 		orderGroup.Use(middleware.Authenticate)
-		orderGroup.POST("/", handlers.OrderHandler.PlaceOrder)
-		orderGroup.GET("/", handlers.OrderHandler.GetOrders)
+		orderGroup.POST("", handlers.OrderHandler.PlaceOrder)
+		orderGroup.GET("", handlers.OrderHandler.GetOrders)
 		orderGroup.GET("/:id", handlers.OrderHandler.GetOrderById)
 		orderGroup.DELETE("/:id", handlers.OrderHandler.CancelOrder)
 		orderGroup.PATCH("/:id/:status", handlers.OrderHandler.UpdateStatus)
@@ -39,9 +39,9 @@ func RouterSetup(handlers *RouterHandlers) *gin.Engine {
 
 	productGroup := r.Group("/products")
 	{
-		productGroup.GET("/", handlers.ProductHandler.GetProducts)
+		productGroup.GET("", handlers.ProductHandler.GetProducts)
 		productGroup.GET("/:identifier", handlers.ProductHandler.GetProduct)
-		productGroup.POST("/", handlers.ProductHandler.CreateProduct)
+		productGroup.POST("", handlers.ProductHandler.CreateProduct)
 		productGroup.PATCH("/:id", handlers.ProductHandler.UpdateProduct)
 		productGroup.DELETE("/:id", handlers.ProductHandler.DeleteProduct)
 	}

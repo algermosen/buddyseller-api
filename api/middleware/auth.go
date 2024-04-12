@@ -3,6 +3,7 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"example/buddyseller-api/utils"
@@ -12,7 +13,15 @@ import (
 
 func Authenticate(c *gin.Context) {
 	var err error
-	token := c.Request.Header.Get("Authorization")
+	authHeader := c.Request.Header.Get("Authorization")
+	headerSlice := strings.Split(authHeader, "Bearer ")
+
+	if len(headerSlice) < 2 {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Must provide a valid token."})
+		return
+	}
+
+	token := headerSlice[1]
 
 	if token == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Must provide a valid token."})
